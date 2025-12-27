@@ -1,14 +1,10 @@
+import mimetypes
 from fastapi import FastAPI, Response
-from fastapi.responses import JSONResponse, PlainTextResponse, HTMLResponse
-
+from fastapi.responses import JSONResponse, PlainTextResponse, HTMLResponse, FileResponse
 app = FastAPI()
 
-@app.get("/html", response_class= HTMLResponse)
-def root_html():
-    data = "<h1> NEKETS <h1>"
-    return HTMLResponse(content=data)
-
-@app.get("/text", response_class=PlainTextResponse)
-def root_text():
-    data = "<NEKETS>"
-    return PlainTextResponse(content=data)
+@app.get("/")
+def root():
+    return FileResponse("index.html",
+                        filename="mainpage.html",
+                        media_type="application/octet-stream")
