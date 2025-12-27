@@ -9,7 +9,7 @@ def root():
                         filename="mainpage.html",
                         media_type="application/octet-stream")
     
-@app.get("/users/{id}")
-def users(id):
-    return {"user_id": id}
+@app.get("/users/{name}/{age}")
+def users(name, age):
+    return {"user_name": name, "user_age": age}
     
