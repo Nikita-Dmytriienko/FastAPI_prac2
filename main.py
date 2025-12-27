@@ -1,8 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
+from fastapi.responses import JSONResponse, PlainTextResponse
 
 app = FastAPI()
 
 @app.get("/")
 def root():
-    return {"message": "123"}
-
+    data = "NEKETS"
+    return Response(content=data)
