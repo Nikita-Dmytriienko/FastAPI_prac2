@@ -1,7 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 
 app = FastAPI()
 
 @app.get("/users")
-def users(name, age):
-    return {"user_name": name, "user_age": age}
+def users(name: str = Query(min_length=3, max_length=20)):
+    return {"name": name}
