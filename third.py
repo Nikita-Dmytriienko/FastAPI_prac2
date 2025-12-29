@@ -1,6 +1,14 @@
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI, Body
+from fastapi.responses import FileResponse
 
 app = FastAPI()
 
-app.mount("/", StaticFiles(directory="public",html=True))
+@app.get("/")
+def root():
+    return FileResponse("public/index.html")
+
+@app.post("/hello")
+def hello(data= Body()):
+    name = data ["name"]
+    age = data ["age"]
+    return {"message": f"{name}, your age = {age} "}
