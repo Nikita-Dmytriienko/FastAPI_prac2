@@ -1,8 +1,13 @@
-from fastapi import FastAPI, status
-from fastapi.responses import JSONResponse
+import mimetypes
+from fastapi import FastAPI
+from fastapi.responses import RedirectResponse, PlainTextResponse
 
 app = FastAPI()
 
-@app.get("/notfound")
-def notfound():
-    return JSONResponse(content={"message": "Resource Not Found"}, status_code=404)
+@app.get("/old")
+def old():
+    return RedirectResponse("/new")
+
+@app.get("/new")
+def new():
+    return PlainTextResponse("New Page")
