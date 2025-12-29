@@ -3,6 +3,6 @@ from fastapi.responses import JSONResponse
 
 app = FastAPI()
 
-@app.get("/notfound", status_code=status.HTTP_404_NOT_FOUND)
+@app.get("/notfound")
 def notfound():
-    return {"message": "Resource Not Found"}
+    return JSONResponse(content={"message": "Resource Not Found"}, status_code=404)
