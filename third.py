@@ -8,7 +8,7 @@ def root():
     return FileResponse("public/index.html")
 
 @app.post("/hello")
-def hello(data= Body()):
-    name = data ["name"]
-    age = data ["age"]
+def hello(name = Body(embed=True), age = Body(embed=True)):
+    # name = data ["name"]
+    # age = data ["age"]
     return {"message": f"{name}, your age = {age} "}
