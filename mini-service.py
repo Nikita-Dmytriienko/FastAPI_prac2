@@ -1,15 +1,24 @@
-'''
-Раз разобрался с Query Params,
- попробуй реализовать мини-сервис,
-  который принимает параметры (например,
-   твой вес и количество прыжков) и возвращает расчет сожженных калорий с правильным статусным кодом.
-'''
+from fastapi import FastAPI, Query, status
+from pydantic import BaseModel
 
-from fastapi import FastAPI, Path, Query
+
+class ExerciseRequest(BaseModel):
+    weight: float
+    squats: int
+
 
 app = FastAPI()
 
 
-@app.get("/weight")
-def weight(weight: float = Query(ge=30, lt=150):
-    
+
+
+
+@app.get("/calculate", status_code=status.HTTP_200_OK)
+def calculate(weight: float = Query(ge=30, lt=150),
+              squats: int = Query(ge=1, lt=500)):
+    calories = squats * ( weight / 70 ) * 0.4
+    calories = round(calories, 1)
+
+    return {"Your weight": weight,
+            "Amount of squats": squats,
+            "Your burned calories:": calories}
