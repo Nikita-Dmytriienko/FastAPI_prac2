@@ -12,3 +12,4 @@ def hello(name = Body(embed=True), age = Body(embed=True)):
     # name = data ["name"]
     # age = data ["age"]
     return {"message": f"{name}, your age = {age} "}
+
