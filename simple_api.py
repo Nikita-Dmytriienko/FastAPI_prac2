@@ -1,12 +1,18 @@
 ﻿import uuid
+from dataclasses import dataclass,field
+
 from fastapi import FastAPI, Body, status, HTTPException
 from fastapi.responses import JSONResponse, FileResponse
 
+def generate_id():
+    return str(uuid.uuid4())
+
+@dataclass
 class Person:
-    def __init__(self, name, age):
-        self.name = name
-        self.age = age
-        self.id = str(uuid.uuid4())
+    name: str
+    age: int
+    id: str = field(default_factory=generate_id)
+
 
 
 people = [Person("Tom", 38), Person("Bob", 42), Person("Sam", 28)]
@@ -14,9 +20,8 @@ people = [Person("Tom", 38), Person("Bob", 42), Person("Sam", 28)]
 
 def find_person(id):
     for person in people:
-        if person.id == id:
+        if person.id is id:
             return person
-
     return None
 
 
@@ -38,7 +43,7 @@ def get_person(id):
     person = find_person(id)
     print(person)
 
-    if person == None:
+    if person is None:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content={"message": "user not found"}
@@ -57,7 +62,7 @@ def create_person(data = Body()):
 @app.put("/api/users")
 def edit_person(data = Body()):
     person = find_person(data["id"])
-    if person == None:
+    if person is None:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content={"message": "User not Found"}
@@ -67,7 +72,7 @@ def edit_person(data = Body()):
     return person
 
 
-@app.delete("/api/user/{id}", status_code=status.HTTP_200_OK)
+@app.delete("/api/users/{id}", status_code=status.HTTP_200_OK)
 def delete_person(id):
     person = find_person(id)
     if person is None:
