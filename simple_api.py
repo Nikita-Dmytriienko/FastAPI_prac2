@@ -1,41 +1,30 @@
 ﻿import uuid
-from dataclasses import dataclass,field
 
 from fastapi import FastAPI, Body, status, HTTPException
 from fastapi.responses import JSONResponse, FileResponse
-
-def generate_id():
-    return str(uuid.uuid4())
-
-@dataclass
-class Person:
-    name: str
-    age: int
-    id: str = field(default_factory=generate_id)
+from pydantic import BaseModel, Field
 
 
+class UserSchema(BaseModel):
+    name: str = Field(min_length=3, max_length=20,description="Name")
+    age: int = Field(default=18, ge=18, lt=100, description="Age")
 
-people = [Person("Tom", 38), Person("Bob", 42), Person("Sam", 28)]
+class UserResponse(BaseModel):
+    id:str
 
+people =[]
 
 def find_person(id):
     for person in people:
-        if person.id is id:
+        if person.id == id:
             return person
     return None
 
-
 app = FastAPI()
-
 
 @app.get("/")
 async def main():
     return FileResponse("public/index.html")
-
-
-@app.get("/api/users")
-def get_people():
-    return people
 
 
 @app.get("/api/users/{id}")
@@ -52,25 +41,31 @@ def get_person(id):
     return person
 
 
-@app.post("/api/users")
-def create_person(data = Body()):
-    person = Person(data["name"], data["age"])
-    people.append(person)
-    return person
+@app.post("/api/users", status_code=status.HTTP_201_CREATED)
+def create_person(user: UserSchema):
+    new_user = UserResponse(
+        id = str(uuid.uuid4()),
+        name=user.name,
+        age = user.age
+    )
+    people.append(new_user)
+    return new_user
 
+@app.get("/api/users")
+def get_people():
+    return people
 
-@app.put("/api/users")
-def edit_person(data = Body()):
-    person = find_person(data["id"])
-    if person is None:
-        return JSONResponse(
-            status_code=status.HTTP_404_NOT_FOUND,
-            content={"message": "User not Found"}
-        )
-    person.age = data["age"]
-    person.name = data["name"]
-    return person
-
+@app.put("/api/users", status_code=status.HTTP_202_ACCEPTED)
+def edit_person(user_id: str, updated_data: UserSchema):
+    for person in people:
+        if person.id == user_id:
+            person.name = updated_data.name
+            person.age = updated_data.age
+            return person
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="User not found"
+    )
 
 @app.delete("/api/users/{id}", status_code=status.HTTP_200_OK)
 def delete_person(id):
