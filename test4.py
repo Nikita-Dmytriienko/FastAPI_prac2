@@ -1,13 +1,14 @@
-from typing import Optional
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 class Person(BaseModel):
-    name: str
-    age: Optional[int] = None
-    
+    name: str = Field(default="Undefined", min_length=3, max_length=20)
+    age: int = Field(default=18, ge=18, lt=100)
+
+
 app = FastAPI()
+
 
 @app.get("/")
 def root():
@@ -16,7 +17,4 @@ def root():
 
 @app.post("/hello")
 def hello(person: Person):
-    if person.age == None:
-        return {"message": f"Hi, {person.name}"}
-    else:
         return {"message": f"Hi, {person.name}, your age is {person.age}"}
