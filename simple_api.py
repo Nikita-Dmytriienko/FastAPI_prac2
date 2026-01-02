@@ -1,5 +1,5 @@
 ﻿import uuid
-from fastapi import FastAPI, Body, status
+from fastapi import FastAPI, Body, status, HTTPException
 from fastapi.responses import JSONResponse, FileResponse
 
 class Person:
@@ -67,13 +67,13 @@ def edit_person(data = Body()):
     return person
 
 
-@app.delete("/api/user/{id}")
+@app.delete("/api/user/{id}", status_code=status.HTTP_200_OK)
 def delete_person(id):
     person = find_person(id)
-    if person == None:
-        return JSONResponse(
+    if person is None:
+        raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            content={"message": "User not Found"}
+            detail="User not found"
         )
     people.remove(person)
-    return person
+    return {"message": "User deleted"}
