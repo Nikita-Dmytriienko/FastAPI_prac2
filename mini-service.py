@@ -3,14 +3,14 @@ from pydantic import BaseModel, Field
 
 
 class ExerciseRequest(BaseModel):
-    weight: float = Field(ge=30, lt=150, description="Weight in kg")
-    squats: int = Field(ge=1, lt=500, description="Squats amount")
+    weight: float = Field(ge=30, lt=150, description="Weight in kg", example=70.0)
+    squats: int = Field(ge=1, le=10000, description="Squats amount", example=100)
 
 
 class ExerciseResponse(BaseModel):
-    weight: float = Field(description="Weight in kg")
-    squats: int = Field(description="Squats amount")
-    burned_calories: float = Field(description="Burned calories",example=45.7)
+    weight: float = Field(description="Weight in kg", example=70.0)
+    squats: int = Field(description="Squats amount", example=100)
+    burned_calories: float = Field(description="Burned calories", example=40.0)
 
 
 app = FastAPI()
