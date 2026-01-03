@@ -105,13 +105,13 @@ def update_person(user_id: str,user_data: UserCreate, db: Session = Depends(get_
     db.refresh(user)
     return user
 
-@app.delete("/api/users/{id}", status_code=status.HTTP_200_OK)
-def delete_person(id):
-    person = find_person(id)
-    if person is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
-    DATABASE_URL.remove(person)
+#DELETE
+@app.delete("/api/users/{user_id}", status_code=status.HTTP_200_OK)
+def delete_person(user_id: str, db: Session = Depends(get_db)):
+    user = db.query(UserDB).filter(UserDB.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    db.delete(user)
+    db.commit()
     return {"message": "User deleted"}
