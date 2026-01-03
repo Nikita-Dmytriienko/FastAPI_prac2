@@ -53,12 +53,6 @@ def get_db():
     finally:
         db.close()
 
-def find_person(id):
-    for person in DATABASE_URL:
-        if person.id == id:
-            return person
-    return None
-
 app = FastAPI()
 
 @app.get("/")
