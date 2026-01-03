@@ -1,8 +1,18 @@
 ﻿import uuid
+from dotenv import load_dotenv
+import os
 
-from fastapi import FastAPI, status, HTTPException
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi import FastAPI, HTTPException, status
+from fastapi.responses import FileResponse
+
 from pydantic import BaseModel, Field
+
+from sqlalchemy import create_engine, Column, String, Integer
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+
+from starlette.responses import JSONResponse
 
 
 class UserSchema(BaseModel):
@@ -14,10 +24,16 @@ class UserResponse(BaseModel):
     name:str
     age:int
 
-people =[]
+load_dotenv()
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL dont found in .env file")
+
+engine = create_engine(DATABASE_URL)
 
 def find_person(id):
-    for person in people:
+    for person in DATABASE_URL:
         if person.id == id:
             return person
     return None
@@ -50,16 +66,16 @@ def create_person(user: UserSchema):
         name=user.name,
         age = user.age
     )
-    people.append(new_user)
+    DATABASE_URL.append(new_user)
     return new_user
 
 @app.get("/api/users")
 def get_people():
-    return people
+    return DATABASE_URL
 
 @app.put("/api/users", status_code=status.HTTP_200_OK)
 def edit_person(user_id: str, updated_data: UserSchema):
-    for person in people:
+    for person in DATABASE_URL:
         if person.id == user_id:
             person.name = updated_data.name
             person.age = updated_data.age
@@ -77,5 +93,5 @@ def delete_person(id):
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
-    people.remove(person)
+    DATABASE_URL.remove(person)
     return {"message": "User deleted"}
