@@ -12,8 +12,6 @@ from sqlalchemy.orm import sessionmaker, Session
 from dotenv import load_dotenv
 import os
 
-from starlette.responses import JSONResponse
-
 
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
