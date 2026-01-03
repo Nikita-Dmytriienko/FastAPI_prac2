@@ -1,28 +1,19 @@
 ﻿import uuid
-from dotenv import load_dotenv
-import os
-
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.responses import FileResponse
 
 from pydantic import BaseModel, Field
 
-from sqlalchemy import create_engine, Column, String, Integer
+from sqlalchemy import Column, String, Integer, create_engine
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
+
+from dotenv import load_dotenv
+import os
 
 from starlette.responses import JSONResponse
 
-
-class UserSchema(BaseModel):
-    name: str = Field(min_length=3, max_length=20,description="Name")
-    age: int = Field(ge=18, lt=100, description="Age")
-
-class UserResponse(BaseModel):
-    id:str
-    name:str
-    age:int
 
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -31,6 +22,38 @@ if not DATABASE_URL:
     raise ValueError("DATABASE_URL dont found in .env file")
 
 engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+class UserDB(Base):
+    __tablename__ = "users"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String(20), nullable=False)
+    age = Column(Integer, nullable=False)
+
+
+Base.metadata.create_all(bind=engine)
+
+class UserCreate(BaseModel):
+    name: str = Field(min_length=3, max_length=20,description="Name")
+    age: int = Field(ge=18, lt=100, description="Age")
+
+class UserResponse(BaseModel):
+    id: uuid.UUID
+    name:str
+    age:int
+
+    class Config:
+        from_attributes = True
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 def find_person(id):
     for person in DATABASE_URL:
@@ -44,46 +67,43 @@ app = FastAPI()
 async def main():
     return FileResponse("public/index.html")
 
+#GET all users
+@app.get("/api/users/")
+def get_all_users(db: Session = Depends(get_db)):
+    return db.query(UserDB).all()
 
-@app.get("/api/users/{id}")
-def get_person(id):
-    person = find_person(id)
-    print(person)
-
-    if person is None:
-        return JSONResponse(
-            status_code=status.HTTP_404_NOT_FOUND,
-            content={"message": "user not found"}
-        )
-
-    return person
+#GET user from id
+@app.get("/api/users/{user_id}")
+def get_person(user_id: str, db: Session = Depends(get_db)):
+    user = db.query(UserDB).filter(UserDB.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
 
 
+#CREATE
 @app.post("/api/users", status_code=status.HTTP_201_CREATED)
-def create_person(user: UserSchema):
-    new_user = UserResponse(
-        id = str(uuid.uuid4()),
-        name=user.name,
-        age = user.age
+def create_person(user_data: UserCreate, db: Session = Depends(get_db)):
+    new_user = UserDB(
+        name=user_data.name,
+        age = user_data.age
     )
-    DATABASE_URL.append(new_user)
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user) # id from db
     return new_user
 
-@app.get("/api/users")
-def get_people():
-    return DATABASE_URL
-
+#UPDATE
 @app.put("/api/users", status_code=status.HTTP_200_OK)
-def edit_person(user_id: str, updated_data: UserSchema):
-    for person in DATABASE_URL:
-        if person.id == user_id:
-            person.name = updated_data.name
-            person.age = updated_data.age
-            return person
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="User not found"
-    )
+def update_person(user_id: str,user_data: UserCreate, db: Session = Depends(get_db)):
+    user = db.query(UserDB).filter(UserDB.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.name = user_data.name
+    user.age = user_data.age
+    db.commit()
+    db.refresh(user)
+    return user
 
 @app.delete("/api/users/{id}", status_code=status.HTTP_200_OK)
 def delete_person(id):
