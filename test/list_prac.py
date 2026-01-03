@@ -12,7 +12,7 @@ app = FastAPI()
 
 @app.get("/")
 def root():
-    return FileResponse("public/index.html")
+    return FileResponse("../public/index.html")
 
 @app.post("/hello")
 def hello(people: list[Person]):

@@ -5,7 +5,7 @@ app = FastAPI()
 
 @app.get("/")
 def root():
-    return FileResponse("public/index.html")
+    return FileResponse("../public/index.html")
 
 @app.post("/hello")
 def hello(name = Body(embed=True, min_length=3, max_length=50),
