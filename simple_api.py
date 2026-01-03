@@ -1,16 +1,18 @@
 ﻿import uuid
 
-from fastapi import FastAPI, Body, status, HTTPException
+from fastapi import FastAPI, status, HTTPException
 from fastapi.responses import JSONResponse, FileResponse
 from pydantic import BaseModel, Field
 
 
 class UserSchema(BaseModel):
     name: str = Field(min_length=3, max_length=20,description="Name")
-    age: int = Field(default=18, ge=18, lt=100, description="Age")
+    age: int = Field(ge=18, lt=100, description="Age")
 
 class UserResponse(BaseModel):
     id:str
+    name:str
+    age:int
 
 people =[]
 
@@ -55,7 +57,7 @@ def create_person(user: UserSchema):
 def get_people():
     return people
 
-@app.put("/api/users", status_code=status.HTTP_202_ACCEPTED)
+@app.put("/api/users", status_code=status.HTTP_200_OK)
 def edit_person(user_id: str, updated_data: UserSchema):
     for person in people:
         if person.id == user_id:
