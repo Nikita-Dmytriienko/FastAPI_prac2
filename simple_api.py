@@ -6,32 +6,37 @@ from pydantic import BaseModel, Field
 
 from sqlalchemy import Column, String, Integer, create_engine
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker, Session, Mapped, mapped_column
 
 from dotenv import load_dotenv
 import os
 
-
+#load .env
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL dont found in .env file")
 
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+engine = create_async_engine(DATABASE_URL, pool_size=20, max_overflow=10)
+SessionLocal = async_sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 class UserDB(Base):
     __tablename__ = "users"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String(20), nullable=False)
-    age = Column(Integer, nullable=False)
+    # id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    # name = Column(String(20), nullable=False)
+    # age = Column(Integer, nullable=False)
+    # Base.metadata.create_all(bind=engine)
 
+    #new style for sqlalchemy 2.0
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True),primary_key=True,default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String(20), nullable=False)
+    age: Mapped[int] = mapped_column(Integer, nullable=False)
 
-Base.metadata.create_all(bind=engine)
 
 class UserCreate(BaseModel):
     name: str = Field(min_length=3, max_length=20,description="Name")
@@ -44,6 +49,10 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class UserUpdate(BaseModel):
+    name: str | None = Field(None, min_length=3, max_length=20)
+    age: int | None = Field(None, ge=18, lt=100)
 
 
 def get_db():
@@ -87,7 +96,11 @@ def create_person(user_data: UserCreate, db: Session = Depends(get_db)):
 
 #UPDATE
 @app.put("/api/users", status_code=status.HTTP_200_OK)
-def update_person(user_id: str,user_data: UserCreate, db: Session = Depends(get_db)):
+def update_person(
+        user_id: str,
+        user_data: UserUpdate,
+        db: Session = Depends(get_db)
+):
     user = db.query(UserDB).filter(UserDB.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
