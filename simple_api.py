@@ -20,9 +20,13 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL dont found in .env file")
 
-engine = create_async_engine(DATABASE_URL, pool_size=20, max_overflow=10)
-SessionLocal = async_sessionmaker(autocommit=False, autoflush=False, bind=engine)
+async_engine = create_async_engine(DATABASE_URL, pool_size=20, max_overflow=10)
+AsyncSessionLocal = async_sessionmaker(async_engine, expire_on_commit=False)
 Base = declarative_base()
+
+async def get_db():
+    async with AsyncSessionLocal() as db:
+        yield db
 
 class UserDB(Base):
     __tablename__ = "users"
@@ -54,13 +58,6 @@ class UserUpdate(BaseModel):
     name: str | None = Field(None, min_length=3, max_length=20)
     age: int | None = Field(None, ge=18, lt=100)
 
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 app = FastAPI()
 
