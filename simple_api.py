@@ -1,58 +1,55 @@
 ﻿import uuid
-from fastapi import FastAPI, HTTPException, Depends, status
+
+from fastapi import FastAPI, HTTPException, Depends, status, Path
 from fastapi.responses import FileResponse
 
 from pydantic import BaseModel, Field
 
-from sqlalchemy import Column, String, Integer, create_engine
+from sqlalchemy import String, Integer, select
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session, Mapped, mapped_column
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from sqlalchemy.orm import Mapped, mapped_column, declarative_base
 
 from dotenv import load_dotenv
 import os
 
-#load .env
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
-
 if not DATABASE_URL:
-    raise ValueError("DATABASE_URL dont found in .env file")
+    raise ValueError("DATABASE_URL not found in .env file")
+
 
 async_engine = create_async_engine(DATABASE_URL, pool_size=20, max_overflow=10)
 AsyncSessionLocal = async_sessionmaker(async_engine, expire_on_commit=False)
 Base = declarative_base()
 
+
 async def get_db():
     async with AsyncSessionLocal() as db:
         yield db
 
+
 class UserDB(Base):
     __tablename__ = "users"
 
-    # id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    # name = Column(String(20), nullable=False)
-    # age = Column(Integer, nullable=False)
-    # Base.metadata.create_all(bind=engine)
-
-    #new style for sqlalchemy 2.0
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True),primary_key=True,default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(20), nullable=False)
     age: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
 class UserCreate(BaseModel):
-    name: str = Field(min_length=3, max_length=20,description="Name")
+    name: str = Field(min_length=3, max_length=20, description="Name")
     age: int = Field(ge=18, lt=100, description="Age")
+
 
 class UserResponse(BaseModel):
     id: uuid.UUID
-    name:str
-    age:int
+    name: str
+    age: int
 
     class Config:
         from_attributes = True
+
 
 class UserUpdate(BaseModel):
     name: str | None = Field(None, min_length=3, max_length=20)
@@ -61,59 +58,82 @@ class UserUpdate(BaseModel):
 
 app = FastAPI()
 
+
+@app.on_event("startup")
+async def startup():
+    async with async_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+
 @app.get("/")
 async def main():
     return FileResponse("public/index.html")
 
-#GET all users
-@app.get("/api/users/")
-def get_all_users(db: Session = Depends(get_db)):
-    return db.query(UserDB).all()
 
-#GET user from id
-@app.get("/api/users/{user_id}")
-def get_person(user_id: str, db: Session = Depends(get_db)):
-    user = db.query(UserDB).filter(UserDB.id == user_id).first()
+# GET all
+@app.get("/api/users/", response_model=list[UserResponse])
+async def get_all_users(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(UserDB))
+    return result.scalars().all()
+
+
+# GET by id
+@app.get("/api/users/{user_id}", response_model=UserResponse)
+async def get_person(
+        user_id: uuid.UUID = Path(
+            ...,
+            description="User UUID",
+            examples="550e8400-e29b-41d4-a716-446655440032"
+        ),
+        db: AsyncSession = Depends(get_db)
+):
+    user = await db.get(UserDB, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
 
-#CREATE
-@app.post("/api/users", status_code=status.HTTP_201_CREATED)
-def create_person(user_data: UserCreate, db: Session = Depends(get_db)):
-    new_user = UserDB(
-        name=user_data.name,
-        age = user_data.age
-    )
+# CREATE
+@app.post("/api/users", status_code=status.HTTP_201_CREATED, response_model=UserResponse)
+async def create_person(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
+    new_user = UserDB(name=user_data.name, age=user_data.age)
     db.add(new_user)
-    db.commit()
-    db.refresh(new_user) # id from db
+    await db.commit()
+    await db.refresh(new_user)
     return new_user
 
-#UPDATE
-@app.put("/api/users", status_code=status.HTTP_200_OK)
-def update_person(
-        user_id: str,
+
+# UPDATE
+@app.put("/api/users/{user_id}", response_model=UserResponse)
+async def update_person(
         user_data: UserUpdate,
-        db: Session = Depends(get_db)
+        user_id: uuid.UUID = Path(..., description="User UUID"),
+        db: AsyncSession = Depends(get_db)
 ):
-    user = db.query(UserDB).filter(UserDB.id == user_id).first()
+    user = await db.get(UserDB, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    user.name = user_data.name
-    user.age = user_data.age
-    db.commit()
-    db.refresh(user)
+
+    if user_data.name is not None:
+        user.name = user_data.name
+    if user_data.age is not None:
+        user.age = user_data.age
+
+    await db.commit()
+    await db.refresh(user)
     return user
 
-#DELETE
-@app.delete("/api/users/{user_id}", status_code=status.HTTP_200_OK)
-def delete_person(user_id: str, db: Session = Depends(get_db)):
-    user = db.query(UserDB).filter(UserDB.id == user_id).first()
+
+# DELETE
+@app.delete("/api/users/{user_id}")
+async def delete_person(
+        user_id: uuid.UUID = Path(..., description="User UUID"),
+        db: AsyncSession = Depends(get_db)
+):
+    user = await db.get(UserDB, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    db.delete(user)
-    db.commit()
-    return {"message": "User deleted"}
+    await db.delete(user)
+    await db.commit()
+    return {"detail": "User deleted"}
