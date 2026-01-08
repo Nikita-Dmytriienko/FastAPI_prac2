@@ -8,7 +8,7 @@ The project is lightweight, fast, and completely asynchronous — no blocking op
 
 - **Full async stack**: async engine, async sessions, async routes  
 - **UUID as primary key** — modern and secure  
-- **Data validation** via Pydantic (with constraints and descriptions)  
+- **Data validation** via Pydantic (with constraints and descriptions). 
 - **RESTful API** with proper status codes and response models  
 - **Simple frontend** in `public/index.html` — list users, add, edit, delete right in the browser  
 - Automatic table creation on startup  
