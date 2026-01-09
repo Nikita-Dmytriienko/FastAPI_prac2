@@ -41,7 +41,7 @@ This project uses **[uv](https://docs.astral.sh/uv/)** — an extremely fast Pyt
 - Exact versions (including transitive dependencies) are pinned in `uv.lock` for full reproducibility.
 
 **Recommended way to install dependencies:**
-
+ 
 ```bash
 # Install uv if you don't have it yet
 curl -LsSf https://astral.sh/uv/install.sh | sh
