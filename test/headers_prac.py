@@ -1,8 +1,10 @@
-from fastapi import FastAPI, Header
+from fastapi import FastAPI, Response
+from datetime import datetime
 
 app = FastAPI()
 
-
 @app.get("/")
-def root(secret_code: str | None = Header(default=None)):
-    return {"User-Agent": secret_code}
+def root(response: Response):
+    now = datetime.now()
+    response.set_cookie(key="last_visit", value=now)
+    return {"message": "cookies enabled"}
