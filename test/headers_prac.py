@@ -4,5 +4,5 @@ app = FastAPI()
 
 
 @app.get("/")
-def root(user_agent: str = Header()):
-    return {"User-Agent": user_agent}
+def root(secret_code: str | None = Header(default=None)):
+    return {"User-Agent": secret_code}
