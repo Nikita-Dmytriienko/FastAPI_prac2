@@ -1,10 +1,11 @@
-from fastapi import FastAPI, Cookie
-
+from fastapi import FastAPI, Form
+from fastapi.responses import FileResponse
 app = FastAPI()
 
 @app.get("/")
-def root(last_visit: str | None = Cookie(default=None)):
-    if last_visit is None:
-        return {"message": "Its your first visit"}
-    else:
-        return {"last visit": last_visit}
+def root():
+    return FileResponse("public_2/index.html")
+
+@app.post("/postdata")
+def postdata(username = Form(),userage = Form()):
+    return {"name": username, "age": userage}
