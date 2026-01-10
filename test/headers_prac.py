@@ -1,8 +1,8 @@
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Header
 
 app = FastAPI()
 
+
 @app.get("/")
-def root():
-    data = "Nekets"
-    return Response(content=data, media_type="text/plain", headers={"Secret-Code": "12331231"})
+def root(user_agent: str = Header()):
+    return {"User-Agent": user_agent}
