@@ -70,14 +70,14 @@ async def main():
     return FileResponse("public/index.html")
 
 
-# GET all
+# GET ALL USERS
 @app.get("/api/users/", response_model=list[UserResponse])
 async def get_all_users(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(UserDB))
     return result.scalars().all()
 
 
-# GET by id
+# GET BY ID USER
 @app.get("/api/users/{user_id}", response_model=UserResponse)
 async def get_person(
         user_id: uuid.UUID = Path(
@@ -93,7 +93,7 @@ async def get_person(
     return user
 
 
-# CREATE
+# CREATE USER
 @app.post("/api/users", status_code=status.HTTP_201_CREATED, response_model=UserResponse)
 async def create_person(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
     new_user = UserDB(name=user_data.name, age=user_data.age)
@@ -103,7 +103,7 @@ async def create_person(user_data: UserCreate, db: AsyncSession = Depends(get_db
     return new_user
 
 
-# UPDATE
+# UPDATE USER
 @app.put("/api/users/{user_id}", response_model=UserResponse)
 async def update_person(
         user_data: UserUpdate,
@@ -124,7 +124,7 @@ async def update_person(
     return user
 
 
-# DELETE
+# DELETE USER
 @app.delete("/api/users/{user_id}")
 async def delete_person(
         user_id: uuid.UUID = Path(..., description="User UUID"),
