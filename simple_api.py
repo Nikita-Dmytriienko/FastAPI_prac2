@@ -1,8 +1,8 @@
 import uuid
 
-from fastapi import FastAPI, HTTPException, Depends, status, Path
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, HTTPException, Depends, status, Path, Query
 
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -65,18 +65,21 @@ async def startup():
         await conn.run_sync(Base.metadata.create_all)
 
 
-@app.get("/")
-async def main():
-    return FileResponse("public/index.html")
+app.mount("/",
+           StaticFiles(
+               directory="public",
+               html=True),
+           name="static")
 
 
 # GET ALL USERS
-@app.get("/api/users/",
-         response_model=list[UserResponse],
-         limit= 50,
-         ofset=0)
-async def get_all_users(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(UserDB))
+@app.get("/api/users/",response_model=list[UserResponse])
+async def get_all_users(
+    db: AsyncSession = Depends(get_db),
+    skip: int = Query(0, ge=0, description="Offset for pagination"),
+    limit: int = Query(100, ge=1, le=1000, description="Limit for pagination")
+):
+    result = await db.execute(select(UserDB.offset(skip).limit(limit)))
     return result.scalars().all()
 
 
