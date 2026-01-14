@@ -71,7 +71,10 @@ async def main():
 
 
 # GET ALL USERS
-@app.get("/api/users/", response_model=list[UserResponse])
+@app.get("/api/users/",
+         response_model=list[UserResponse],
+         limit= 50,
+         ofset=0)
 async def get_all_users(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(UserDB))
     return result.scalars().all()
