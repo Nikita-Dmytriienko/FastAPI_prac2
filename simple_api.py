@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Depends, status, Path, Query
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import Response
+from fastapi.responses import Response, RedirectResponse
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -69,6 +69,13 @@ class UserUpdate(BaseModel):
     name: str | None = Field(None, min_length=3, max_length=20)
     age: int | None = Field(None, ge=18, lt=100)
 
+@app.get("/api/users")
+async def redirect_get_list():
+    return RedirectResponse(url="/api/users/")
+
+@app.post("/api/users")
+async def redirect_post_create():
+    return RedirectResponse(url="/api/users/", status_code=307)
 
 # GET ALL USERS
 @app.get("/api/users/",response_model=list[UserResponse])
