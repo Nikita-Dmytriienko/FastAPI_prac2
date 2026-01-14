@@ -112,7 +112,11 @@ async def create_person(user_data: UserCreate, db: AsyncSession = Depends(get_db
 @app.put("/api/users/{user_id}", response_model=UserResponse)
 async def update_person(
         user_data: UserUpdate,
-        user_id: uuid.UUID = Path(..., description="User UUID"),
+        user_id: uuid.UUID = Path(
+            ...,
+            description="User UUID",
+            examples={"example": {"value": "550e8400-e29b-41d4-a716-446655440032"}}
+        ),
         db: AsyncSession = Depends(get_db)
 ):
     user = await db.get(UserDB, user_id)
@@ -130,9 +134,13 @@ async def update_person(
 
 
 # DELETE USER
-@app.delete("/api/users/{user_id}")
+@app.delete("/api/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_person(
-        user_id: uuid.UUID = Path(..., description="User UUID"),
+        user_id: uuid.UUID = Path(
+            ...,
+            description="User UUID",
+            examples={"example": {"value": "550e8400-e29b-41d4-a716-446655440032"}}
+        ),
         db: AsyncSession = Depends(get_db)
 ):
     user = await db.get(UserDB, user_id)
@@ -141,4 +149,4 @@ async def delete_person(
 
     await db.delete(user)
     await db.commit()
-    return {"detail": "User deleted"}
+    return Response(status_code=204)
