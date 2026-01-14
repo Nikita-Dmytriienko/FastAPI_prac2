@@ -1,9 +1,11 @@
-﻿import uuid
+import uuid
+from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Depends, status, Path
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, HTTPException, Depends, status, Path, Query
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import Response
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from sqlalchemy import String, Integer, select
 from sqlalchemy.dialects.postgresql import UUID
@@ -28,7 +30,20 @@ async def get_db():
     async with AsyncSessionLocal() as db:
         yield db
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    async with async_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield
+    
+app = FastAPI(lifespan=lifespan)
 
+app.mount("/",
+           StaticFiles(
+               directory="public",
+               html=True),
+               name="static")
+    
 class UserDB(Base):
     __tablename__ = "users"
 
@@ -47,8 +62,7 @@ class UserResponse(BaseModel):
     name: str
     age: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserUpdate(BaseModel):
@@ -56,24 +70,15 @@ class UserUpdate(BaseModel):
     age: int | None = Field(None, ge=18, lt=100)
 
 
-app = FastAPI()
-
-
-@app.on_event("startup")
-async def startup():
-    async with async_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-
-@app.get("/")
-async def main():
-    return FileResponse("public/index.html")
-
-
 # GET ALL USERS
-@app.get("/api/users/", response_model=list[UserResponse])
-async def get_all_users(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(UserDB))
+@app.get("/api/users/",response_model=list[UserResponse])
+async def get_all_users(
+    db: AsyncSession = Depends(get_db),
+    skip: int = Query(0, ge=0, description="Offset for pagination"),
+    limit: int = Query(100, ge=1, le=1000, description="Limit for pagination")
+):
+    query = select(UserDB).order_by(UserDB.id).offset(skip).limit(limit)
+    result = await db.execute(query)
     return result.scalars().all()
 
 
@@ -83,7 +88,7 @@ async def get_person(
         user_id: uuid.UUID = Path(
             ...,
             description="User UUID",
-            examples="550e8400-e29b-41d4-a716-446655440032"
+            examples={"example": {"value": "550e8400-e29b-41d4-a716-446655440032"}}
         ),
         db: AsyncSession = Depends(get_db)
 ):
@@ -94,7 +99,7 @@ async def get_person(
 
 
 # CREATE USER
-@app.post("/api/users", status_code=status.HTTP_201_CREATED, response_model=UserResponse)
+@app.post("/api/users/", status_code=status.HTTP_201_CREATED, response_model=UserResponse)
 async def create_person(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
     new_user = UserDB(name=user_data.name, age=user_data.age)
     db.add(new_user)
@@ -107,7 +112,11 @@ async def create_person(user_data: UserCreate, db: AsyncSession = Depends(get_db
 @app.put("/api/users/{user_id}", response_model=UserResponse)
 async def update_person(
         user_data: UserUpdate,
-        user_id: uuid.UUID = Path(..., description="User UUID"),
+        user_id: uuid.UUID = Path(
+            ...,
+            description="User UUID",
+            examples={"example": {"value": "550e8400-e29b-41d4-a716-446655440032"}}
+        ),
         db: AsyncSession = Depends(get_db)
 ):
     user = await db.get(UserDB, user_id)
@@ -125,9 +134,13 @@ async def update_person(
 
 
 # DELETE USER
-@app.delete("/api/users/{user_id}")
+@app.delete("/api/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_person(
-        user_id: uuid.UUID = Path(..., description="User UUID"),
+        user_id: uuid.UUID = Path(
+            ...,
+            description="User UUID",
+            examples={"example": {"value": "550e8400-e29b-41d4-a716-446655440032"}}
+        ),
         db: AsyncSession = Depends(get_db)
 ):
     user = await db.get(UserDB, user_id)
@@ -136,4 +149,4 @@ async def delete_person(
 
     await db.delete(user)
     await db.commit()
-    return {"detail": "User deleted"}
+    return Response(status_code=204)
