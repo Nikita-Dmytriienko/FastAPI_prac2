@@ -1,10 +1,11 @@
 import uuid
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Depends, status, Path, Query
-
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, ConfigDict, Field
+from fastapi.responses import Response
 
+from pydantic import BaseModel, ConfigDict, Field
 
 from sqlalchemy import String, Integer, select
 from sqlalchemy.dialects.postgresql import UUID
@@ -29,7 +30,12 @@ async def get_db():
     async with AsyncSessionLocal() as db:
         yield db
 
-
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    async with async_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield
+    
 class UserDB(Base):
     __tablename__ = "users"
 
@@ -59,12 +65,6 @@ class UserUpdate(BaseModel):
 app = FastAPI()
 
 
-@app.on_event("startup")
-async def startup():
-    async with async_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-
 app.mount("/",
            StaticFiles(
                directory="public",
@@ -79,7 +79,8 @@ async def get_all_users(
     skip: int = Query(0, ge=0, description="Offset for pagination"),
     limit: int = Query(100, ge=1, le=1000, description="Limit for pagination")
 ):
-    result = await db.execute(select(UserDB.offset(skip).limit(limit)))
+    query = select(UserDB).offset(skip).limit(limit)
+    result = await db.execute(query)
     return result.scalars().all()
 
 
@@ -89,7 +90,7 @@ async def get_person(
         user_id: uuid.UUID = Path(
             ...,
             description="User UUID",
-            examples="550e8400-e29b-41d4-a716-446655440032"
+            examples={"example": {"value": "550e8400-e29b-41d4-a716-446655440032"}}
         ),
         db: AsyncSession = Depends(get_db)
 ):
@@ -100,7 +101,7 @@ async def get_person(
 
 
 # CREATE USER
-@app.post("/api/users", status_code=status.HTTP_201_CREATED, response_model=UserResponse)
+@app.post("/api/users/", status_code=status.HTTP_201_CREATED, response_model=UserResponse)
 async def create_person(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
     new_user = UserDB(name=user_data.name, age=user_data.age)
     db.add(new_user)
