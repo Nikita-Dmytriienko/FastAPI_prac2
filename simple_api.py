@@ -3,7 +3,7 @@ import uuid
 from fastapi import FastAPI, HTTPException, Depends, status, Path
 from fastapi.responses import FileResponse
 
-from pydantic import BaseModel, ConfigDict, Field, UserResponse
+from pydantic import BaseModel, ConfigDict, Field
 
 
 from sqlalchemy import String, Integer, select
