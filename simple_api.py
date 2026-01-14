@@ -36,6 +36,14 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all)
     yield
     
+app = FastAPI(lifespan=lifespan)
+
+app.mount("/",
+           StaticFiles(
+               directory="public",
+               html=True),
+               name="static")
+    
 class UserDB(Base):
     __tablename__ = "users"
 
@@ -60,16 +68,6 @@ class UserResponse(BaseModel):
 class UserUpdate(BaseModel):
     name: str | None = Field(None, min_length=3, max_length=20)
     age: int | None = Field(None, ge=18, lt=100)
-
-
-app = FastAPI()
-
-
-app.mount("/",
-           StaticFiles(
-               directory="public",
-               html=True),
-           name="static")
 
 
 # GET ALL USERS
