@@ -1,9 +1,10 @@
-﻿import uuid
+import uuid
 
 from fastapi import FastAPI, HTTPException, Depends, status, Path
 from fastapi.responses import FileResponse
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, UserResponse
+
 
 from sqlalchemy import String, Integer, select
 from sqlalchemy.dialects.postgresql import UUID
@@ -47,8 +48,7 @@ class UserResponse(BaseModel):
     name: str
     age: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserUpdate(BaseModel):
