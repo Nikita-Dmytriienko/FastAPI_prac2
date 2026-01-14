@@ -77,7 +77,7 @@ async def get_all_users(
     skip: int = Query(0, ge=0, description="Offset for pagination"),
     limit: int = Query(100, ge=1, le=1000, description="Limit for pagination")
 ):
-    query = select(UserDB).offset(skip).limit(limit)
+    query = select(UserDB).order_by(UserDB.id).offset(skip).limit(limit)
     result = await db.execute(query)
     return result.scalars().all()
 
