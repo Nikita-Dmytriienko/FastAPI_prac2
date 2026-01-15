@@ -36,9 +36,10 @@
                 method: "GET",
                 headers: { "Accept": "application/json" }
             });
-            if (response.ok === true) {
+            if (response.ok) {
                 const users = await response.json();
                 const rows = document.querySelector("tbody");
+                rows.innerHTML = "";
                 users.forEach(user => rows.append(row(user)));
             }
         }
@@ -48,19 +49,16 @@
                 method: "GET",
                 headers: { "Accept": "application/json" }
             });
-            if (response.ok === true) {
+            if (response.ok) {
                 const user = await response.json();
                 document.getElementById("userId").value = user.id;
                 document.getElementById("userName").value = user.name;
                 document.getElementById("userAge").value = user.age;
-            } else {
-                const error = await response.json();
-                console.log(error.message);
             }
         }
 
         async function createUser(userName, userAge) {
-            const response = await fetch("api/users", {
+            const response = await fetch("/api/users", {
                 method: "POST",
                 headers: { "Accept": "application/json", "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -68,50 +66,39 @@
                     age: parseInt(userAge, 10)
                 })
             });
-            if (response.ok === true) {
+            if (response.ok) {
                 const user = await response.json();
                 document.querySelector("tbody").append(row(user));
-            } else {
-                const error = await response.json();
-                console.log(error.message);
             }
         }
 
         async function editUser(userId, userName, userAge) {
-    const response = await fetch(`/api/users/${userId}`, {
-        method: "PUT",
-        headers: { "Accept": "application/json", "Content-Type": "application/json" },
-        body: JSON.stringify({
-            name: userName,
-            age: parseInt(userAge, 10)
-        })
-    });
-    if (response.ok === true) {
-        const user = await response.json();
-        document.querySelector(`tr[data-rowid='${user.id}']`).replaceWith(row(user));
-    } else {
-        const error = await response.json();
-        console.log(error.detail || error.message);
-    }
-}
+            const response = await fetch(`/api/users/${userId}`, {
+                method: "PUT",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: userName,
+                    age: parseInt(userAge, 10)
+                })
+            });
+            if (response.ok) {
+                const user = await response.json();
+                document.querySelector(`tr[data-rowid='${user.id}']`).replaceWith(row(user));
+            }
+        }
 
         async function deleteUser(id) {
             const response = await fetch(`/api/users/${id}`, {
-                method: "DELETE",
-                headers: { "Accept": "application/json" }
+                method: "DELETE"
             });
-            if (response.ok === true) {
-                const user = await response.json();
-                document.querySelector(`tr[data-rowid='${user.id}']`).remove();
-            } else {
-                const error = await response.json();
-                console.log(error.message);
+            if (response.ok) {
+                document.querySelector(`tr[data-rowid='${id}']`).remove();
             }
         }
 
         function reset() {
-            document.getElementById("userId").value =
-            document.getElementById("userName").value =
+            document.getElementById("userId").value = "";
+            document.getElementById("userName").value = "";
             document.getElementById("userAge").value = "";
         }
 
@@ -131,32 +118,34 @@
 
             const editLink = document.createElement("button");
             editLink.append("Edit");
-            editLink.addEventListener("click", async () => await getUser(user.id));
+            editLink.addEventListener("click", () => getUser(user.id));
             linksTd.append(editLink);
 
             const removeLink = document.createElement("button");
             removeLink.append("Delete");
-            removeLink.addEventListener("click", async () => await deleteUser(user.id));
-
+            removeLink.addEventListener("click", () => deleteUser(user.id));
             linksTd.append(removeLink);
+
             tr.appendChild(linksTd);
 
             return tr;
         }
 
-        document.getElementById("resetBtn").addEventListener("click", () => reset());
+        document.getElementById("resetBtn").addEventListener("click", reset);
 
         document.getElementById("saveBtn").addEventListener("click", async () => {
             const id = document.getElementById("userId").value;
             const name = document.getElementById("userName").value;
             const age = document.getElementById("userAge").value;
-            if (id === "")
+            if (id === "") {
                 await createUser(name, age);
-            else
+            } else {
                 await editUser(id, name, age);
+            }
             reset();
+            await getUsers();
         });
-
+        
         getUsers();
     </script>
 </body>

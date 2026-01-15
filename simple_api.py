@@ -31,18 +31,13 @@ async def get_db():
         yield db
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_app: FastAPI):
     async with async_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield
     
 app = FastAPI(lifespan=lifespan)
 
-app.mount("/",
-           StaticFiles(
-               directory="public",
-               html=True),
-               name="static")
     
 class UserDB(Base):
     __tablename__ = "users"
@@ -71,12 +66,13 @@ class UserUpdate(BaseModel):
 
 
 # GET ALL USERS
-@app.get("/api/users/",response_model=list[UserResponse])
+@app.get("/api/users", response_model=list[UserResponse])
 async def get_all_users(
     db: AsyncSession = Depends(get_db),
     skip: int = Query(0, ge=0, description="Offset for pagination"),
     limit: int = Query(100, ge=1, le=1000, description="Limit for pagination")
 ):
+    print("GET /api/users called!")
     query = select(UserDB).order_by(UserDB.id).offset(skip).limit(limit)
     result = await db.execute(query)
     return result.scalars().all()
@@ -99,7 +95,7 @@ async def get_person(
 
 
 # CREATE USER
-@app.post("/api/users/", status_code=status.HTTP_201_CREATED, response_model=UserResponse)
+@app.post("/api/users", status_code=status.HTTP_201_CREATED, response_model=UserResponse)
 async def create_person(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
     new_user = UserDB(name=user_data.name, age=user_data.age)
     db.add(new_user)
@@ -150,3 +146,7 @@ async def delete_person(
     await db.delete(user)
     await db.commit()
     return Response(status_code=204)
+
+
+# Mount static files AFTER all API routes
+app.mount("/", StaticFiles(directory="public", html=True), name="static")
