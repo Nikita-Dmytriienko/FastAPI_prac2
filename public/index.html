@@ -32,7 +32,7 @@
 
     <script>
         async function getUsers() {
-            const response = await fetch("/api/users/", {
+            const response = await fetch("/api/users", {
                 method: "GET",
                 headers: { "Accept": "application/json" }
             });
@@ -58,7 +58,7 @@
         }
 
         async function createUser(userName, userAge) {
-            const response = await fetch("/api/users/", {
+            const response = await fetch("/api/users", {
                 method: "POST",
                 headers: { "Accept": "application/json", "Content-Type": "application/json" },
                 body: JSON.stringify({
