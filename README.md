@@ -2,7 +2,7 @@
 
 This is a small but fully functional CRUD application for managing users.  
 The backend is built with modern async FastAPI + SQLAlchemy 2.0, database is PostgreSQL, and the frontend is pure vanilla JavaScript with no frameworks.  
-The project is lightweight, fast, and completely asynchronous — no blocking operations.
+The project is lightweight, fast, and completely asynchronous — no blocking operations. 
 
 ## ✨ Features
 
