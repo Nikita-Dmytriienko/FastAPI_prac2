@@ -38,7 +38,6 @@ async def lifespan(_app: FastAPI):
     
 app = FastAPI(lifespan=lifespan)
 
-    
 class UserDB(Base):
     __tablename__ = "users"
 
