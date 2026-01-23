@@ -52,7 +52,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv sync
 ```
 This guarantees the same environment on any machine or CI/CD.
-Alternative (classic pip):
+Alternative (classic pip): 
 ```
 pip install fastapi uvicorn sqlalchemy asyncpg python-dotenv
 ```
